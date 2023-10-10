@@ -1,0 +1,7 @@
+<?php
+try {
+    $command = 'php -S localhost:8000 -f public/index.php';
+    $value = shell_exec($command);
+} catch (\Throwable $th) {
+    echo $th->getMessage();
+}

@@ -1,0 +1,2 @@
+[2023-10-08 12:31:08] ERROR: #0 [internal function]: Riyu\Handler\Error->shutdownHandler()
+#1 {main}

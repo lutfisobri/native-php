@@ -1,0 +1,11 @@
+{
+    "name": "Kateru Riyu",
+    "autoload": {
+        "namespace": {
+            "Riyu\\": "src/"
+        },
+        "files": [
+            "src/Utils/function.php"
+        ]
+    }
+}
