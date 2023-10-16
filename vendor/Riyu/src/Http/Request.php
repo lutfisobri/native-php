@@ -67,6 +67,10 @@ class Request extends HttpRequest
         if (isset($this->parameters[$key])) {
             return $this->parameters[$key];
         }
+
+        if ($this->has($key)) {
+            return $this->get($key);
+        }
         
         return null;
     }
@@ -86,10 +90,16 @@ class Request extends HttpRequest
     public function setParameter($key, $value)
     {
         $this->parameters[$key] = $value;
+
+        $this->set($key, $value);
     }
 
     public function hasParameter($key)
     {
-        return isset($this->parameters[$key]);
+        if (isset($this->parameters[$key])) {
+            return true;
+        }
+
+        return $this->has($key);
     }
 }

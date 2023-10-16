@@ -10,7 +10,6 @@ class ServiceProvider implements Service
     public function __construct($context)
     {
         $this->context = $context;
-        $this->register();
     }
 
     public function register()
@@ -20,6 +19,6 @@ class ServiceProvider implements Service
 
     public function boot()
     {
-        throw new \Exception('You must override the boot() method in the service provider.');
+        //
     }
 }

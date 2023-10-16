@@ -12,9 +12,13 @@ class Server implements ArrayInterface
         $this->server = $_SERVER;
     }
 
-    public function get($key)
+    public function get($key, $default = null)
     {
-        return $this->server[$key];
+        if ($this->has($key)) {
+            return $this->server[$key];
+        }
+
+        return $default;
     }
 
     public function all()

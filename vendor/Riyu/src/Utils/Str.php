@@ -83,4 +83,29 @@ class Str
     {
         return strtolower($string);
     }
+
+    public static function upper($string)
+    {
+        return strtoupper($string);
+    }
+
+    public static function length($string)
+    {
+        return strlen($string);
+    }
+
+    public static function replace($string, $search, $replace)
+    {
+        return str_replace($search, $replace, $string);
+    }
+
+    public static function replaceFirst($string, $search, $replace)
+    {
+        return preg_replace('/' . preg_quote($search, '/') . '/', $replace, $string, 1);
+    }
+
+    public static function replaceLast($string, $search, $replace)
+    {
+        return preg_replace('/' . preg_quote($search, '/') . '/', $replace, $string, -1);
+    }
 }

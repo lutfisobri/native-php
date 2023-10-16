@@ -3,9 +3,13 @@ namespace Riyu\Foundation;
 
 use App\Services\RouteProvider;
 use Riyu\Contract\Application as ApplicationContract;
+use Riyu\Foundation\Router\Redirect;
 use Riyu\Foundation\Router\Router;
 use Riyu\Http\Request;
+use Riyu\Http\Response;
 use Riyu\Http\Route;
+use Riyu\View\View;
+use Riyu\View\Widget\Widget;
 
 /**0
  * Context class.
@@ -45,6 +49,7 @@ class Application implements ApplicationContract
 
     public function run()
     {
+        $this->registerServiceProviders();
         $this->container->get('router')->dispatch();
     }
 
@@ -88,6 +93,11 @@ class Application implements ApplicationContract
         return $this->basePath;
     }
 
+    public function basePath($path = '')
+    {
+        return $this->basePath . ($path ? DIRECTORY_SEPARATOR . $path : $path);
+    }
+
     public function resolve($abstract, $parameters = [])
     {
         return $this->container->resolve($abstract, $parameters);
@@ -109,13 +119,22 @@ class Application implements ApplicationContract
         $this->container->instance('router', new Router($this));
         $this->container->instance('route', new Route($this));
         $this->container->instance('request', new Request($this));
-        // $this->container->instance('response', new Response());
-        // $this->container->instance('view', new View($this));
+        $this->container->instance('response', new Response());
+        $this->container->instance('view', new View($this));
+        $this->container->instance('widget', new Widget($this));
+        $this->container->instance('redirect', new Redirect($this));
     }
 
     protected function registerBaseServiceProviders()
     {
         $this->register(new RouteProvider($this));
         // $this->register(new ViewServiceProvider($this));
+    }
+
+    protected function registerServiceProviders()
+    {
+        foreach ($this->serviceProviders as $provider) {
+            $provider->register();
+        }
     }
 }

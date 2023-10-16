@@ -15,8 +15,6 @@ class RouterRegistar
     public function group($callback)
     {
         $this->router->group($this->attributes, $callback);
-
-        return $this;
     }
 
     public function prefix($prefix)

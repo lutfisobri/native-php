@@ -5,14 +5,45 @@ abstract class Request
 {
     protected $attributes = [];
 
+    protected $files = [];
+
     public function __construct()
     {
         $this->attributes = $_REQUEST;
+
+        if (isset($_FILES)) {
+            foreach ($_FILES as $key => $value) {
+                $this->attributes[$key] = new File($value);
+                $this->files[$key] = new File($value);
+            }
+        }
+
+        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'PUT') {
+            $this->attributes = array_merge($this->attributes, $this->parsePut());
+        }
+    }
+
+    protected function parsePut()
+    {
+        $result = [];
+        parse_str(file_get_contents('php://input'), $result);
+        return $result;
     }
 
     public function all()
     {
         return $this->attributes;
+    }
+
+    /**
+     * Get the file from the request.
+     * 
+     * @param string $key
+     * @return \Riyu\Foundation\Http\File|null
+     */
+    public function file($key)
+    {
+        return isset($this->files[$key]) ? $this->files[$key] : null;
     }
 
     public function get($key, $default = null)

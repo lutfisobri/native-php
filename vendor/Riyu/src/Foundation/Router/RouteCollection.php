@@ -39,7 +39,7 @@ class RouteCollection
         $currentRoute = false;
 
         foreach ($routes as $route) {
-            if ($currentRoute != false && $currentRoute['uri'] === $route['uri']) {
+            if ($currentRoute != false && $currentRoute['uri'] === $route['uri'] && $currentRoute['methods'] === $route['methods']) {
                 $th = $currentRoute['uri'];
                 throw new \Exception("Route '$th' already registered.");
             }
