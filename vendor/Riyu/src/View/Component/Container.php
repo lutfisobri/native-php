@@ -5,8 +5,21 @@ class Container extends Component
 {
     public function render($callback = null)
     {
-        $content = '<div class="container"';
+        $content = '';
         foreach ($this->attributes as $key => $value) {
+            if ($key == 'class') {
+                $content = $value;
+            }
+        }
+
+        $class = 'container' . ($content ? ' ' . $content : '');
+        
+        $content = '<div class="' . $class . '"';
+
+        foreach ($this->attributes as $key => $value) {
+            if ($key == 'class') {
+                continue;
+            }
             $content .= ' ' . $key . '="' . $value . '"';
         }
 

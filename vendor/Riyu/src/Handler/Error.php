@@ -50,8 +50,8 @@ class Error
     public function display($exception)
     {
         $response = new \Riyu\Http\Response();
-        $response->setStatusCode(500);
-        $response->setContent($this->render($exception));
+        $response->code(500);
+        $response->content($this->render($exception));
         $response->send();
     }
 

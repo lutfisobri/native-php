@@ -19,8 +19,8 @@ class Response
     public function send()
     {
         $this->sendHeaders();
-        $this->sendContent();
         $this->sendStatusCode();
+        $this->sendContent();
     }
 
     public function sendHeaders()

@@ -1,154 +1,103 @@
 <?php
 namespace Riyu\Session;
 
-use Riyu\Contract\Session\Session;
+use Riyu\Foundation\Application;
 
-class Store implements Session
+class Store
 {
     /**
-     * @var string
+     * The session object.
+     * 
+     * @var \Riyu\Session\Session
      */
-    protected $name;
+    protected $session;
 
-    /**
-     * @var array
-     */
-    protected $data = [];
-
-    /**
-     * @var bool
-     */
-    protected $started = false;
-
-    public function __construct(string $name = null)
+    public function __construct(\Riyu\Foundation\Application $app = null)
     {
-        if (!is_null($name)) {
-            $this->name = $name;
+        $path = $app->getBasePath();
+        if (!is_null($path)) {
+            $path = $path . '/storage/sessions';
+            $path = $this->savepath($path);
+        }
+
+        $this->session = new Session($path ?? null);
+    }
+
+    public function addAll(array $data)
+    {
+        foreach ($data as $key => $value) {
+            $this->set($key, $value);
         }
     }
 
-    /**
-     * Start the session.
-     * 
-     * @return void
-     */
-    public function start()
+    public function set($key, $value)
     {
-        if (!$this->started) {
-            $this->started = true;
-        }
+        $this->session->set($key, $value);
     }
 
-    /**
-     * Get the session name.
-     * 
-     * @return string
-     */
-    public function getName()
-    {
-        return $this->name;
-    }
-
-    /**
-     * Set the session name.
-     * 
-     * @param string $name
-     * @return void
-     */
-    public function setName(string $name)
-    {
-        if (!is_null($name)) {
-            $this->name = $name;
-        }
-    }
-
-    /**
-     * Get the session data.
-     * 
-     * @return array
-     */
-    public function getData()
-    {
-        return $this->data;
-    }
-
-    /**
-     * Set the session data.
-     * 
-     * @param array $data
-     * @return void
-     */
-    public function setData(array $data)
-    {
-        if (!is_null($data) && is_array($data) && count($data) > 0) {
-            $this->data = $data;
-        }
-    }
-
-    /**
-     * Get the session data by key.
-     * 
-     * @param string $key
-     * @return mixed
-     */
     public function get($key, $default = null)
     {
-        if (isset($this->data[$key])) {
-            return $this->data[$key];
+        if ($this->session->has($key)) {
+            return $this->session->get($key);
         }
 
         return $default;
     }
 
-    /**
-     * Set the session data by key.
-     * 
-     * @param string $key
-     * @param mixed $value
-     * @return void
-     */
-    public function set($key, $value = null)
-    {
-        if (!is_null($key)) {
-            $this->data[$key] = $value;
-        }
-    }
-
-    /**
-     * Check if the session data exists.
-     * 
-     * @param string $key
-     * @return bool
-     */
     public function has($key)
     {
-        if (isset($this->data[$key])) {
-            return true;
-        }
-
-        return false;
+        return $this->session->has($key);
     }
 
-    /**
-     * Remove the session data by key.
-     * 
-     * @param string $key
-     * @return void
-     */
     public function remove($key)
     {
-        if (isset($this->data[$key])) {
-            unset($this->data[$key]);
+        $this->session->remove($key);
+    }
+
+    public function clear()
+    {
+        $this->session->destroy();
+
+        if ($this->session->status() == Session::NONE) {
+            $this->session = new Session();
         }
     }
 
-    /**
-     * Clear the session data.
-     * 
-     * @return void
-     */
-    public function clear()
+    public function all()
     {
-        $this->data = [];
+        return $this->session->all();
+    }
+
+    public function regenerate()
+    {
+        $this->session->regenerate();
+    }
+
+    private function savepath($path)
+    {
+        if (!is_dir($path)) {
+            mkdir($path, 0777, true);
+        }
+
+        if (!is_writable($path)) {
+            chmod($path, 0777);
+        }
+        
+        return $path;
+    }
+
+    public function destroy()
+    {
+        $this->session->destroy();
+    }
+
+    public function previousUrl()
+    {
+        return $this->get('_previous_url');
+    }
+
+    public function setPreviousUrl($url)
+    {
+        $this->set('_previous_url', $url);
     }
 }

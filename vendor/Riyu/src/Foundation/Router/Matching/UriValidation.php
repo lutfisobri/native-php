@@ -5,12 +5,33 @@ class UriValidation implements ValidationInterfaces
 {
     public function validate($routes, $request)
     {
-        $path = rtrim($request->getPathInfo(), '/') ?: '/';
+        $path = "/";
+        if ($request->getPathInfo()) {
+            $path = rtrim($request->getPathInfo(), '/') ?: '/';
 
-        $match = preg_match($this->compileRoute($routes['uri']), $path);
+            if ($path !== '/' && strpos($path, '/') !== 0) {
+                $path = '/' . $path;
+            }
+        }
+
+        $uri = '';
+
+        if ($routes instanceof \Riyu\Foundation\Router\Route) {
+            $uri = $routes->getUri();
+        } else {
+            $uri = $routes['uri'];
+        }
+
+        $match = preg_match($this->compileRoute($uri), $path);
         
         if ($match) {
-            $request->setParameters($this->getParameters($routes['uri'], $path));
+            $request->setParameters($this->getParameters($uri, $path));
+        } else {
+            $match = preg_match($this->compileRouteOptional($uri), $path);
+
+            if ($match) {
+                $request->setParameters($this->getParametersOptional($uri, $path));
+            }
         }
 
         return $match;
@@ -26,6 +47,24 @@ class UriValidation implements ValidationInterfaces
     protected function getParameters($route, $path)
     {
         $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?<$1>[a-zA-Z0-9_ -]+)', $route);
+
+        preg_match('#^' . $pattern . '$#', $path, $matches);
+
+        return $matches;
+    }
+
+    // pattern optional value {id?}
+    protected function compileRouteOptional($route)
+    {
+        $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\?\}/', '(?<$1>[a-zA-Z0-9_ -]+)?', $route);
+
+        return '#^' . $pattern . '$#';
+    }
+
+    // pattern optional value {id?}
+    protected function getParametersOptional($route, $path)
+    {
+        $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\?\}/', '(?<$1>[a-zA-Z0-9_ -]+)?', $route);
 
         preg_match('#^' . $pattern . '$#', $path, $matches);
 

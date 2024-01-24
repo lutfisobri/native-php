@@ -113,3 +113,76 @@ if (! function_exists('redirect')) {
         return app('redirect')->to($path);
     }
 }
+
+if (! function_exists('tap')) {
+    /**
+     * Call the given Closure with the given value then return the value.
+     *
+     * @param  mixed  $value
+     * @param  callable|null  $callback
+     * @return mixed
+     */
+    function tap($value, $callback = null)
+    {
+        if (is_null($callback)) {
+            return $value;
+        }
+
+        $callback($value);
+
+        return $value;
+    }
+}
+
+if (! function_exists('asset')) {
+    /**
+     * Get the asset path.
+     *
+     * @param  string  $path
+     * @return string
+     */
+    function asset($path)
+    {
+        if (strpos($path, '/') !== 0) {
+            $path = '/' . $path;
+        }
+
+        return '/public' . $path;
+    }
+}
+
+if (! function_exists('session')) {
+    /**
+     * Get the session instance.
+     *
+     * @return \Riyu\Session\Store|mixed
+     */
+    function session($key = null, $default = null)
+    {
+        if (is_null($key)) {
+            return app('session');
+        }
+
+        if (is_array($key)) {
+            return app('session')->addAll($key);
+        }
+
+        if (!is_null($default)) {
+            return app('session')->get($key, $default);
+        }
+
+        return app('session')->get($key);
+    }
+}
+
+if (! function_exists('auth')) {
+    /**
+     * Get the auth instance.
+     *
+     * @return \Riyu\Foundation\Auth\Auth|null
+     */
+    function auth()
+    {
+        return app()->make(\Riyu\Foundation\Auth\Auth::class);
+    }
+}

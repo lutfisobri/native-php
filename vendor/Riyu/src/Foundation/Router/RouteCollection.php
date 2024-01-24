@@ -1,6 +1,7 @@
 <?php
 namespace Riyu\Foundation\Router;
 
+use Riyu\Foundation\Router\Matching\MethodValidation;
 use Riyu\Foundation\Router\Matching\UriValidation;
 
 class RouteCollection
@@ -9,6 +10,11 @@ class RouteCollection
      * @var array
      */
     protected $routes = [];
+
+    /**
+     * @var \Riyu\Foundation\Router\Route[]
+     */
+    protected $routers = [];
 
     /**
      * @param array $methods
@@ -22,6 +28,15 @@ class RouteCollection
             'uri' => $uri,
             'action' => $action
         ];
+
+        return $this->routes[count($this->routes) - 1];
+    }
+
+    public function addRouter($router)
+    {
+        $this->routers[] = $router;
+
+        return $router;
     }
 
     /**
@@ -34,32 +49,34 @@ class RouteCollection
 
     public function matches($request)
     {
-        $routes = $this->getRoutes();
-
-        $currentRoute = false;
-
-        foreach ($routes as $route) {
-            if ($currentRoute != false && $currentRoute['uri'] === $route['uri'] && $currentRoute['methods'] === $route['methods']) {
-                $th = $currentRoute['uri'];
-                throw new \Exception("Route '$th' already registered.");
-            }
-
-            if ($this->match($route, $request)) {
-                $currentRoute = $route;
+        foreach ($this->routers as $router) {
+            if ($router->match($router, $request)) {
+                return $router;
             }
         }
-
-        return $currentRoute;
+        
+        return false;
     }
 
     protected function match($route, $request)
     {
-        $methods = $route['methods'];
-
-        if (! in_array($request->getMethod(), $methods)) {
+        if (!(new MethodValidation())->validate($route, $request)) {
             return false;
         }
 
         return (new UriValidation())->validate($route, $request);
+    }
+
+    public function getRouteByName($name)
+    {
+        $routes = $this->routers;
+
+        foreach ($routes as $route) {
+            if ($route->getName() == $name) {
+                return $route;
+            }
+        }
+
+        throw new \Exception("Route '$name' not found.");
     }
 }

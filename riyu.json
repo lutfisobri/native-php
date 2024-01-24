@@ -1,5 +1,5 @@
 {
-    "name": "Riyu Framework PHP",
+    "name": "Riyu",
     "autoload": {
         "namespace": {
             "App\\": "app/",

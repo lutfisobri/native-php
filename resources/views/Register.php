@@ -15,9 +15,9 @@ class Register extends Widget
     public function content()
     {
         $data = [];
-        foreach ($this->data as $key => $value) {
+        foreach ($this->all() as $key => $value) {
             $data[] = (new Container())->render([
-                '<b>' . $key . '</b>: ' . $value . '<br>'
+                '<b>' . $key . '</b>: ' . $this->forceXss($value) . '<br>'
             ]);
         }
         return (new Container())->render($data);

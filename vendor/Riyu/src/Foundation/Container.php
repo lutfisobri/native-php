@@ -11,6 +11,11 @@ class Container implements ContractContainer
 
     protected static $instance;
 
+    public function __construct()
+    {
+        static::$instance = $this;
+    }
+
     public static function getInstance()
     {
         if (is_null(static::$instance)) {
@@ -29,6 +34,12 @@ class Container implements ContractContainer
     {
         if (isset($this->instances[$abstract])) {
             return $this->instances[$abstract];
+        }
+
+        foreach ($this->instances as $instance) {
+            if ($instance instanceof $abstract) {
+                return $instance;
+            }
         }
 
         if (isset($this->bindings[$abstract])) {
@@ -116,6 +127,12 @@ class Container implements ContractContainer
 
                 $parameters[$dependencies[$key]->name] = $value;
             }
+
+            if (is_string($key) && !is_numeric($key)) {
+                unset($parameters[$key]);
+
+                $parameters[$key] = $value;
+            }
         }
 
         return $parameters;
@@ -138,8 +155,8 @@ class Container implements ContractContainer
             return $parameters[$dependency->name];
         }
 
-        if ($dependency->getClass()) {
-            return $this->make($dependency->getClass()->name);
+        if ($dependency->getType()) {
+            return $this->make($dependency->getType()->getName());
         }
 
         if ($dependency->isDefaultValueAvailable()) {

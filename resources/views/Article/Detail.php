@@ -15,7 +15,7 @@ class Detail extends Widget
 
     public function content()
     {
-        $article = ArticleModel::find($this->id);
+        $article = ArticleModel::find($this->get('id'));
 
         return (new Container())->render([
             (new Div())->class('card')->render([

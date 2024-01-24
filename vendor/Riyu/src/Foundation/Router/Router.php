@@ -3,9 +3,12 @@ namespace Riyu\Foundation\Router;
 
 use Riyu\Contract\Http\RouterInterface;
 use Riyu\Contract\Http\RouterMethod;
+use Riyu\Foundation\Database\Model;
+use Riyu\Http\Request;
 use Riyu\Http\Response;
 use Riyu\View\View;
 use Riyu\View\Widget\Widget;
+use Riyu\Utils\Str;
 
 class Router implements RouterInterface, RouterMethod
 {
@@ -46,9 +49,7 @@ class Router implements RouterInterface, RouterMethod
 
     public function get($uri, $action)
     {
-        $this->addRoute(['GET', 'HEAD'], $uri, $action);
-
-        return $this;
+        return $this->addRoute(['GET', 'HEAD'], $uri, $action);
     }
 
     public function post($uri, $action)
@@ -60,7 +61,7 @@ class Router implements RouterInterface, RouterMethod
 
     public function put($uri, $action)
     {
-        $this->addRoute(['PUT'], $uri, $action);
+        $this->addRoute(['PUT', 'PATCH'], $uri, $action);
 
         return $this;
     }
@@ -100,11 +101,19 @@ class Router implements RouterInterface, RouterMethod
         return $this;
     }
 
+    public function middleware($middleware)
+    {
+        $this->updateGroupStack(['middleware' => $middleware]);
+
+        return $this;
+    }
+
     public function group($attributes, $callback)
     {
         $this->updateGroupStack($attributes);
 
         if ($callback instanceof \Closure) {
+            $callback = $callback->bindTo(null);
             $callback($this);
         }
 
@@ -115,6 +124,18 @@ class Router implements RouterInterface, RouterMethod
         }
 
         $this->removeGroupStack();
+    }
+
+    public function name($name)
+    {
+        $this->updateGroupStack(['name' => $name]);
+
+        return $this;
+    }
+
+    public function setAttributes($attributes)
+    {
+        $this->updateGroupStack($attributes);
     }
 
     public function updateGroupStack($attributes)
@@ -148,11 +169,42 @@ class Router implements RouterInterface, RouterMethod
 
     public function addRoute($methods, $uri, $action)
     {
-        $this->context->make('routerCollection')->addRoute($methods, $this->parseUri($uri), $action);
+        if ($action instanceof \Closure) {
+            $action = $action->bindTo(null);
+        }
+
+        $route = $this->context->make('routerCollection')->addRouter(new Route($methods, $this->parseUri($uri), $action));
+
+        if (count($this->groupStack) > 0) {
+            $this->updateRoute($route);
+        }
+
+        return $route;
+    }
+
+    public function updateRoute($route)
+    {
+        $lastGroup = end($this->groupStack);
+
+        if (isset($lastGroup['name'])) {
+            $route->name($lastGroup['name']);
+        }
+
+        if (isset($lastGroup['middleware'])) {
+            $route->middleware($lastGroup['middleware']);
+        }
+
+        if (isset($lastGroup['prefix'])) {
+            $route->prefix($lastGroup['prefix']);
+        }
     }
 
     public function parseUri($uri) : String
     {
+        if (!Str::startsWith($uri, '/')) {
+            $uri = '/' . $uri;
+        }
+
         if (count($this->groupStack) > 0) {
             $uri = $this->mergeUri($uri);
         }
@@ -175,45 +227,97 @@ class Router implements RouterInterface, RouterMethod
     {
         $request = $this->context->make('request');
         $route = $this->context->make('routerCollection')->matches($request);
+        $this->storeUrl($request->getUri(), $request);
 
         if ($route) {
-            $action = $route['action'];
-            return $this->runAction($action);
+            $request->route($route);
+            return $this->runAction($route->getAction());
         }
 
-        throw new \Exception('Route ' . $request->getUri() . ' not found.');
+        throw new \Exception('Route "' . $request->getUri() . '" not found.');
+    }
+
+    public function storeUrl()
+    {
+        $session = $this->context->make('session');
+        $request = $this->context->make('request');
+        $session->setPreviousUrl($request->server('HTTP_REFERER'));
+    }
+
+    public function runMiddleware($middleware)
+    {
+        $request = $this->context->make('request');
+
+        return $this->context->make($middleware)->handle($request, function ($req) {
+            if (is_null($req)) {
+                return $this->context->make('response');
+            }
+            return $req;
+        });
     }
 
     public function runAction($action)
     {
+        if (is_array($action)) {
+            if (isset($action['middleware']) && !is_null($action['middleware'])) {
+                $middleware = $action['middleware'];
+                if (is_array($middleware)) {
+                    foreach ($middleware as $value) {
+                        $result = $this->runMiddleware($value);
+                        if (!$result instanceof Request) {
+                            return $this->runAction($result);
+                        }
+                    }
+                } else {
+                    $result = $this->runMiddleware($middleware);
+                    if (!$result instanceof Request) {
+                        return $this->runAction($result);
+                    }
+                }
+            }
+    
+            if (isset($action['uses'])) {
+                $action = $action['uses'];
+            }
+        }
+
         $return = $this->resolveAction($action);
 
-        if (is_string($return)) {
+        $this->storeUrl();
+
+        if (is_string($return) || is_numeric($return) || is_bool($return)) {
             echo $return;
-            return null;
+            return;
+        }
+
+        if (is_array($return)) {
+            echo json_encode($return);
+            return;
         }
 
         if ($return instanceof Response) {
             $return->send();
-            return null;
+            return;
         }
 
         if ($return instanceOf View) {
-            echo $return->render();
-            return null;
+            $return->render();
+            return;
         }
 
         if ($return instanceOf Widget) {
             echo $return->build();
-            return null;
+            return;
         }
 
-        if ($return instanceof Redirect) {
+        if ($return instanceof Redirect || $return instanceof Redirector) {
             $return->execute();
-            return null;
+            return;
         }
 
-        return $return;
+        if (is_object($return)) {
+            print_r($return);
+        }
     }
 
     public function resolveAction($action)
@@ -228,9 +332,7 @@ class Router implements RouterInterface, RouterMethod
             } else {
                 $return = call_user_func($action);
             }
-        }
-
-        if (is_string($action)) {
+        } else if (is_string($action)) {
             $action = explode('@', $action);
             $controller = $action[0];
             $method = $action[1];
@@ -244,17 +346,17 @@ class Router implements RouterInterface, RouterMethod
             } else {
                 $return = call_user_func([$controller, $method]);
             }
-        }
-
-        if (is_array($action)) {
+        } else if (is_array($action)) {
             $controller = $action[0];
             $method = $action[1];
 
             if (count($parameters) > 0) {
                 $return = (new $controller())->$method(...$parameters);
             } else {
-                $return = call_user_func([$controller, $method]);
+                $return = (new $controller())->$method();
             }
+        } else {
+            return $action;
         }
 
         return $return;
@@ -262,7 +364,7 @@ class Router implements RouterInterface, RouterMethod
 
     public function bindParameters($action)
     {
-        $request = $this->context->make('request');
+        $request = request();
         $parameters = [];
 
         if (is_callable($action)) {
@@ -289,16 +391,60 @@ class Router implements RouterInterface, RouterMethod
 
         foreach ($parameters as $parameter => $value) {
             $name = $value->name;
+            $defaultValue = null;
+
+            if ($value->isDefaultValueAvailable()) {
+                $defaultValue = $value->getDefaultValue();
+            }
+
             if ($this->context->has($name)) {
                 $parameters[$parameter] = $this->context->make($name);
             } else if ($request->hasParameter($name)) {
                 $parameters[$parameter] = $request->getParameter($name);
+            } elseif ($defaultValue) {
+                $parameters[$parameter] = $defaultValue;
+            } else if (($class = $this->getTypeName($value))) {
+                $parameters[$parameter] = $this->context->make($class);
+                // $parameters[$parameter] = new $class();
             } else {
                 $parameters[$parameter] = null;
+            }
+
+            if (!is_null($parameters[$parameter]) && is_object($parameters[$parameter]) && method_exists($parameters[$parameter], 'resolveRouteBinding')) {
+                $parameters[$parameter] = $this->bindModelParamater($parameters[$parameter], $value);
             }
         }
 
         return $parameters;
+    }
+
+    public function bindModelParamater($model, $value)
+    {
+        $request = $this->context->make('request');
+        $model = $model->resolveRouteBinding(array_values($request->all()), array_keys($request->all()));
+
+        return $model;
+    }
+
+    /**
+     * Get the class name of the given parameter's type, if possible.
+     *
+     * @param  \ReflectionParameter  $parameter
+     * @return string|null
+     */
+    public function getTypeName($type)
+    {
+        $name = $type->getType();
+
+        if (!is_null($class = $type->getDeclaringClass())) {
+            $namespace = $class->getNamespaceName();
+
+            if (!empty($namespace) && !is_null($name)) {
+                $name = str_replace($namespace . '\\', '', $name);
+            }
+        }
+
+        return $name;
     }
 
     public function __call($name, $arguments)

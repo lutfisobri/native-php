@@ -153,7 +153,7 @@ class Screen
         $title = $this->title;
 
         if (empty($title)) {
-            return 'Riyu';
+            $title = 'Riyu';
         }
 
         $content = "<title>$title</title>";

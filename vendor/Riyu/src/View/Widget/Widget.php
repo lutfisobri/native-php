@@ -43,6 +43,11 @@ class Widget
         $this->collection->addAll($data);
     }
 
+    public function forceXss($data)
+    {
+        return htmlspecialchars($data);
+    }
+
     // public function get($key, $default = null)
     // {
     //     return $this->collection->get($key, $default);
@@ -84,6 +89,6 @@ class Widget
             return $this->$name(...$arguments);
         }
 
-        throw new \Exception('Method not found.');
+        throw new \Exception('Method '. $name .' not found.');
     }
 }

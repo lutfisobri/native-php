@@ -18,15 +18,17 @@ abstract class Request
             }
         }
 
-        if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'PUT') {
+        if ($this->parsePut) {
             $this->attributes = array_merge($this->attributes, $this->parsePut());
         }
+
     }
 
     protected function parsePut()
     {
         $result = [];
-        parse_str(file_get_contents('php://input'), $result);
+        // parse_str(file_get_contents('php://input'), $result);
+        $result = json_decode(file_get_contents('php://input'), true);
         return $result;
     }
 

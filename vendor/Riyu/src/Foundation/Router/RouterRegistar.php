@@ -23,4 +23,24 @@ class RouterRegistar
 
         return $this;
     }
+
+    public function name($name)
+    {
+        $this->attributes['name'] = $name;
+
+        return $this;
+    }
+
+    public function __call($name, $arguments)
+    {
+        if (method_exists($this->router, $name)) {
+            return $this->router->$name(...$arguments);
+        }
+
+        if (method_exists($this, $name)) {
+            return $this->$name(...$arguments);
+        }
+
+        throw new \Exception("Method '$name' does not exist.");
+    }
 }

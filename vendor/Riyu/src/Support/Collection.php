@@ -3,7 +3,7 @@ namespace Riyu\Support;
 
 use Riyu\Contract\Support\ArrayAccess;
 
-class Collection implements ArrayAccess
+class Collection implements \ArrayAccess, ArrayAccess, \Countable
 {
     protected $data = [];
 
@@ -55,7 +55,7 @@ class Collection implements ArrayAccess
         $this->data = [];
     }
 
-    public function count()
+    public function count(): int
     {
         return count($this->data);
     }
@@ -78,5 +78,71 @@ class Collection implements ArrayAccess
     public function values()
     {
         return array_values($this->data);
+    }
+
+    public function first()
+    {
+        return reset($this->data);
+    }
+
+    public function last()
+    {
+        return end($this->data);
+    }
+
+    public function each(callable $callback)
+    {
+        foreach ($this->data as $key => $value) {
+            $callback($key, $value);
+        }
+    }
+
+    public function map(callable $callback)
+    {
+        $result = [];
+
+        foreach ($this->data as $key => $value) {
+            $result[$key] = $callback($key, $value);
+        }
+
+        return $result;
+    }
+
+    public function filter(callable $callback)
+    {
+        $result = [];
+
+        foreach ($this->data as $key => $value) {
+            if ($callback($key, $value)) {
+                $result[$key] = $value;
+            }
+        }
+
+        return $result;
+    }
+
+    public function sort(callable $callback)
+    {
+        uasort($this->data, $callback);
+    }
+
+    public function offsetExists($offset): bool
+    {
+        return $this->has($offset);
+    }
+
+    public function offsetGet($offset)
+    {
+        return $this->get($offset, null);
+    }
+
+    public function offsetSet($offset, $value): void
+    {
+        $this->set($offset, $value);
+    }
+
+    public function offsetUnset($offset): void
+    {
+        $this->remove($offset);
     }
 }

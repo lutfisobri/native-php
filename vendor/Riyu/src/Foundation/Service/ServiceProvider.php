@@ -3,11 +3,14 @@ namespace Riyu\Foundation\Service;
 
 use Riyu\Contract\Service\Service;
 
-class ServiceProvider implements Service
+abstract class ServiceProvider implements Service
 {
+    /**
+     * @var \Riyu\Foundation\Application
+     */
     protected $context;
 
-    public function __construct($context)
+    public function __construct(\Riyu\Foundation\Application $context)
     {
         $this->context = $context;
     }

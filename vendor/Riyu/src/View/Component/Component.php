@@ -14,6 +14,8 @@ abstract class Component
         'Time',
     ];
 
+    protected $specialChars = false;
+
     public function __construct(array $attributes = [])
     {
         $this->attributes = $attributes;
@@ -22,6 +24,13 @@ abstract class Component
     public function class($class)
     {
         $this->attributes['class'] = $class;
+
+        return $this;
+    }
+
+    public function specialChars(bool $specialChars)
+    {
+        $this->specialChars = $specialChars;
 
         return $this;
     }
@@ -58,6 +67,15 @@ abstract class Component
 
         if (is_string($callback)) {
             $content .= $callback;
+        }
+
+        return $this->setSpecialChars($content);
+    }
+
+    private function setSpecialChars($content)
+    {
+        if ($this->specialChars) {
+            return htmlspecialchars($content);
         }
 
         return $content;
